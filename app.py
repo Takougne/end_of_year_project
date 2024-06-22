@@ -1,7 +1,5 @@
 import streamlit as st
 
-# Rest of your code goes here
-
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 import streamlit as st
