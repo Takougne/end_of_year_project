@@ -12,28 +12,14 @@ from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
 
-# Load environment variables from Streamlit secrets
+# Load environment variables from .env file
+load_dotenv()
+
 def get_openai_api_key():
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set.")
     return api_key
-
-def main():
-    st.title("OpenAI Embeddings Initialization")
-    
-    try:
-        # Get the OpenAI API key
-        openai_api_key = get_openai_api_key()
-        
-        # Initialize OpenAIEmbeddings with the API key
-        embeddings = OpenAIEmbeddings(api_key=openai_api_key)
-        st.success("OpenAI Embeddings initialized successfully.")
-        
-        # Your further code using the embeddings can go here
-        
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
 
 def get_pdf_text(pdf_docs):
     text = ""
@@ -54,15 +40,12 @@ def get_text_chunks(text):
     return chunks
 
 def get_vectorstore(text_chunks):
-    embeddings = OpenAIEmbeddings()
-    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+    embeddings = OpenAIEmbeddings(api_key=get_openai_api_key())
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
 def get_conversation_chain(vectorstore):
     llm = ChatOpenAI()
-    # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
-
     memory = ConversationBufferMemory(
         memory_key='chat_history', return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
@@ -85,9 +68,7 @@ def handle_userinput(user_question):
                 "{{MSG}}", message.content), unsafe_allow_html=True)
 
 def main():
-    load_dotenv()
-    st.set_page_config(page_title="Chat with multiple PDFs",
-                       page_icon=":books:")
+    st.set_page_config(page_title="Chat with multiple PDFs", page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
@@ -116,8 +97,7 @@ def main():
                 vectorstore = get_vectorstore(text_chunks)
 
                 # create conversation chain
-                st.session_state.conversation = get_conversation_chain(
-                    vectorstore)
+                st.session_state.conversation = get_conversation_chain(vectorstore)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
