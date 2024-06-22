@@ -1,8 +1,6 @@
+import os
 import streamlit as st
-
 from dotenv import load_dotenv
-from PyPDF2 import PdfReader
-import streamlit as st
 from PyPDF2 import PdfReader
 from pydantic import BaseModel, ValidationError
 from langchain.text_splitter import CharacterTextSplitter
@@ -14,6 +12,29 @@ from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
 
+# Load environment variables from Streamlit secrets
+def get_openai_api_key():
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set.")
+    return api_key
+
+def main():
+    st.title("OpenAI Embeddings Initialization")
+    
+    try:
+        # Get the OpenAI API key
+        openai_api_key = get_openai_api_key()
+        
+        # Initialize OpenAIEmbeddings with the API key
+        embeddings = OpenAIEmbeddings(api_key=openai_api_key)
+        st.success("OpenAI Embeddings initialized successfully.")
+        
+        # Your further code using the embeddings can go here
+        
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
@@ -21,7 +42,6 @@ def get_pdf_text(pdf_docs):
         for page in pdf_reader.pages:
             text += page.extract_text()
     return text
-
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
@@ -33,13 +53,11 @@ def get_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
-
 def get_vectorstore(text_chunks):
     embeddings = OpenAIEmbeddings()
     # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
-
 
 def get_conversation_chain(vectorstore):
     llm = ChatOpenAI()
@@ -54,7 +72,6 @@ def get_conversation_chain(vectorstore):
     )
     return conversation_chain
 
-
 def handle_userinput(user_question):
     response = st.session_state.conversation({'question': user_question})
     st.session_state.chat_history = response['chat_history']
@@ -66,7 +83,6 @@ def handle_userinput(user_question):
         else:
             st.write(bot_template.replace(
                 "{{MSG}}", message.content), unsafe_allow_html=True)
-
 
 def main():
     load_dotenv()
@@ -103,44 +119,5 @@ def main():
                 st.session_state.conversation = get_conversation_chain(
                     vectorstore)
 
-
-
 if __name__ == '__main__':
     main()
-
-
-
-# def main():
-#     # Check if 'conversation' is not in session state, and initialize it if necessary
-#     if 'conversation' not in st.session_state:
-#         st.session_state.conversation = initialize_conversation()
-
-#     # Input field for user to ask a question
-#     user_question = st.text_input("Ask a question:")
-    
-#     # If there is a user question, handle the input
-#     if user_question:
-#         handle_userinput(user_question)
-
-# def initialize_conversation():
-#     # Define a mock conversation function for demonstration
-#     def mock_conversation(data):
-#         return f"Mock response to: {data['question']}"
-    
-#     return mock_conversation
-
-# def handle_userinput(user_question):
-#     st.write("User Question:", user_question)
-#     st.write("Conversation Object Type:", type(st.session_state.conversation))
-    
-#     # Check if conversation is callable, then call it with the user question
-#     if callable(st.session_state.conversation):
-#         response = st.session_state.conversation({'question': user_question})
-#         st.write("Response:", response)
-#     else:
-#         st.error("Conversation object is not callable.")
-
-# # Entry point for the Streamlit app
-# if __name__ == "__main__":
-#     main()
-
